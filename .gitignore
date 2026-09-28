@@ -1,0 +1,9 @@
+# Vendor artifacts: the original APK, its decompiled tree, and apktool itself.
+# Only the protocol notes (blinds/CLAUDE.md) are kept.
+blinds.apk
+apktool.jar
+apktool.txt
+/blinds/*
+!/blinds/CLAUDE.md
+
+.DS_Store
