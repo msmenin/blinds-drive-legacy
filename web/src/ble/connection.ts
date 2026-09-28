@@ -3,8 +3,10 @@ import * as C from '../protocol/commands';
 import * as D from '../protocol/decode';
 import { createMockDevice, isDemo } from './mock';
 
-export const SERVICE_UUID = 0xfe50;
-export const CHAR_UUID = 0xfe51;
+// Full 128-bit strings, not the 0xFE50 shorthand: Bluefy (iOS) fails to parse numeric UUIDs
+// ("RequestDevice, request payload could not be parsed").
+export const SERVICE_UUID = '0000fe50-0000-1000-8000-00805f9b34fb';
+export const CHAR_UUID = '0000fe51-0000-1000-8000-00805f9b34fb';
 
 const CHUNK = 20;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -53,8 +55,13 @@ export async function pickDevice(name?: string): Promise<BluetoothDevice> {
   if (isDemo()) return demo();
   const filter: BluetoothLEScanFilter = name ? { services: [SERVICE_UUID], name } : { services: [SERVICE_UUID] };
   try {
-    return await navigator.bluetooth.requestDevice({ filters: [filter], optionalServices: [SERVICE_UUID] });
+    // The filter's service is already accessible, so no optionalServices (keeps the payload minimal).
+    return await navigator.bluetooth.requestDevice({ filters: [filter] });
   } catch (e) {
+    // Some Bluefy versions reject filter payloads they can't parse; fall back to an unfiltered chooser.
+    if (e instanceof Error && /pars/i.test(e.message)) {
+      return navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [SERVICE_UUID] });
+    }
     // Chrome throws NotFoundError both for "user cancelled" and, without showing a chooser,
     // for "Bluetooth adapter not available" (off, or the OS denied the browser access).
     if (e instanceof DOMException && e.name === 'NotFoundError' && !/cancel/i.test(e.message)) {
